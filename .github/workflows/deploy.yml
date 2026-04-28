@@ -44,9 +44,9 @@ jobs:
 
       - name: Verify Private Node Internet Access
         run: |
-          # 마스터 노드(10.0.137.229)에 접속하여 구글 DNS로 핑을 날려 인터넷 확인
+          # 마스터 노드(10.0.129.103)에 접속하여 구글 DNS로 핑을 날려 인터넷 확인
           ssh ubuntu@${{ secrets.BASTION_HOST }} << 'EOF'
-            ssh -o StrictHostKeyChecking=no 10.0.137.229 "ping -c 3 8.8.8.8"
+            ssh -o StrictHostKeyChecking=no 10.0.129.103 "ping -c 3 8.8.8.8"
           EOF
           if [ $? -ne 0 ]; then
             echo "NAT Configuration Failed: Private nodes cannot access the internet."
@@ -57,18 +57,21 @@ jobs:
       - name: Initialize Kubespray
         run: |
           ssh ubuntu@${{ secrets.BASTION_HOST }} << 'EOF'
+          # 1. Python 3.11 설치 (Ubuntu 22.04 기본은 3.10이므로 PPA 필요)
             sudo apt-get update
-            # venv 패키지 설치 확인
-            sudo apt-get install -y python3-venv python3-pip
+            sudo apt-get install -y software-properties-common
+            sudo add-apt-repository -y ppa:deadsnakes/ppa
+            sudo apt-get update
+            sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
 
             rm -rf kubespray
 
-            git clone --branch v2.25.0 https://github.com/kubernetes-sigs/kubespray.git
+            git clone https://github.com/kubernetes-sigs/kubespray.git
 
             
             cd kubespray
             # 1. 가상 환경 생성
-            python3 -m venv venv
+            python3.11 -m venv venv
             # 2. 가상 환경 활성화 후 pip 업그레이드 및 설치
             source venv/bin/activate
             pip install --upgrade pip
