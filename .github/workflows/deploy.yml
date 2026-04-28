@@ -61,9 +61,10 @@ jobs:
             # venv 패키지 설치 확인
             sudo apt-get install -y python3-venv python3-pip
 
-            if [ ! -d "kubespray" ]; then
-              git clone --branch v2.25.0 https://github.com/kubernetes-sigs/kubespray.git
-            fi
+            rm -rf kubespray
+
+            git clone --branch v2.25.0 https://github.com/kubernetes-sigs/kubespray.git
+
             
             cd kubespray
             # 1. 가상 환경 생성
@@ -82,6 +83,7 @@ jobs:
 
           # 2) Bastion에서 Kubespray 실행
           ssh ubuntu@${{ secrets.BASTION_HOST }} << 'EOF'
+            chmod 600 ~/.ssh/id_rsa
             cd ~/kubespray
             # 가상 환경 활성화
             source venv/bin/activate 
