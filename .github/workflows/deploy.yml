@@ -1,0 +1,86 @@
+name: K8s Infrastructure Automation
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. GitHub Runner에 SSH 키 등록 (Bastion 접속용)
+      - name: SSH Setup
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # 인벤토리 파일 내의 변수를 실제 IP로 치환
+      - name: Replace Bastion IP in Inventory
+        run: |
+          sed -i "s/{{ BASTION_IP }}/${{ secrets.BASTION_IP }}/g" ./ansible/inventory.ini
+
+      # 2. Bastion 기본 패키지 설치 및 Ansible 파일 전송
+      - name: Prepare Bastion
+        run: |
+          # SSH 접속 확인 및 필수 패키지 설치
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.BASTION_IP }} "sudo apt-get update && sudo apt-get install -y ansible git python3-pip"
+          
+          # 로컬 프로젝트의 ansible 폴더를 Bastion으로 전송
+          scp -r ./ansible ubuntu@${{ secrets.BASTION_IP }}:~/
+
+      - name: Transfer SSH Key to Bastion
+        run: |
+          # Private Key를 파일로 만들어 Bastion에 복사 (Kubespray가 사용하기 위함)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          scp private_key.pem ubuntu@${{ secrets.BASTION_IP }}:~/.ssh/id_rsa
+
+      # 3. NAT 설정 실행 (작성하신 플레이북 실행)
+      - name: Setup NAT on Bastion
+        run: |
+          ssh ubuntu@${{ secrets.BASTION_IP }} "ansible-playbook ~/ansible/setup_nat.yml"
+
+      - name: Verify Private Node Internet Access
+        run: |
+          # 마스터 노드(10.0.137.229)에 접속하여 구글 DNS로 핑을 날려 인터넷 확인
+          ssh ubuntu@${{ secrets.BASTION_IP }} << 'EOF'
+            ssh -o StrictHostKeyChecking=no 10.0.137.229 "ping -c 3 8.8.8.8"
+          EOF
+          if [ $? -ne 0 ]; then
+            echo "NAT Configuration Failed: Private nodes cannot access the internet."
+            exit 1
+          fi
+
+      # 4. Kubespray 설치 및 의존성 해결
+      - name: Initialize Kubespray
+        run: |
+          ssh ubuntu@${{ secrets.BASTION_IP }} << 'EOF'
+            # Kubespray 소스 코드가 없으면 Clone
+            if [ ! -d "kubespray" ]; then
+              git clone https://github.com/kubernetes-sigs/kubespray.git
+            fi
+            
+            cd kubespray
+            # 필요한 파이썬 라이브러리 설치
+            pip3 install -r requirements.txt
+          EOF
+
+      # 5. 인벤토리 파일 전송 및 클러스터 구성 실행
+      - name: Deploy Kubernetes Cluster
+        run: |
+          # 1) 로컬에서 작성한 인벤토리 파일을 Bastion의 kubespray 설정 디렉토리로 복사
+          scp ./ansible/inventory.ini ubuntu@${{ secrets.BASTION_IP }}:~/kubespray/inventory/mycluster.ini
+
+          # 2) Bastion에서 Kubespray 실행
+          ssh ubuntu@${{ secrets.BASTION_IP }} << 'EOF'
+            cd ~/kubespray
+            
+            # 앤서블 실행 (ssh 키 검사를 건너뛰기 위해 ANSIBLE_HOST_KEY_CHECKING 설정)
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            
+            ansible-playbook -i inventory/mycluster.ini cluster.yml \
+              --become --become-user=root \
+              -e ansible_ssh_private_key_file=~/.ssh/id_rsa
+          EOF

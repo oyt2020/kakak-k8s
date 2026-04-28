@@ -1,0 +1,16 @@
+- hosts: localhost # Bastion 내부에서 실행
+  become: yes
+  tasks:
+    - name: Enable IPv4 forwarding
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: yes
+
+    - name: Set up NAT Masquerade
+      iptables:
+        table: nat
+        chain: POSTROUTING
+        out_interface: ens5 # AWS t3 계열은 보통 ens5입니다. 'ip addr'로 확인 필요
+        jump: MASQUERADE
