@@ -14,3 +14,14 @@
         chain: POSTROUTING
         out_interface: ens5 # AWS t3 계열은 보통 ens5입니다. 'ip addr'로 확인 필요
         jump: MASQUERADE
+
+    - name: Configure MSS Clamping for NAT
+      iptables:
+        table: nat
+        chain: POSTROUTING
+        protocol: tcp
+        tcp_flags:
+          flags: SYN,RST
+          mask: SYN
+        jump: TCPMSS
+        set_mss: "1460"
