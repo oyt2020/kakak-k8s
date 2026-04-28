@@ -2,6 +2,10 @@ name: K8s Infrastructure Automation
 on:
   push:
     branches: [ main ]
+  paths-ignore:
+    - '**.md'
+    - 'docs/**'
+    - 'LICENSE'
 
 jobs:
   deploy:
