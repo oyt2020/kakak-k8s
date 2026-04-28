@@ -62,7 +62,7 @@ jobs:
             sudo apt-get install -y python3-venv python3-pip
 
             if [ ! -d "kubespray" ]; then
-              git clone https://github.com/kubernetes-sigs/kubespray.git
+              git clone --branch v2.25.0 https://github.com/kubernetes-sigs/kubespray.git
             fi
             
             cd kubespray
