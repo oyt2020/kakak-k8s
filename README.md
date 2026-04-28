@@ -16,3 +16,12 @@
 -   파이썬 버전 3.11
 -   앤서블 버전 11.x
 -   앤서블 엔진 버전 2.18.x
+
+### 마지막 설정
+컨트롤 플레인에 접속해서 아래 명령어 입력
+
+```bash
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
