@@ -57,14 +57,21 @@ jobs:
       - name: Initialize Kubespray
         run: |
           ssh ubuntu@${{ secrets.BASTION_HOST }} << 'EOF'
-            # Kubespray 소스 코드가 없으면 Clone
+            sudo apt-get update
+            # venv 패키지 설치 확인
+            sudo apt-get install -y python3-venv python3-pip
+
             if [ ! -d "kubespray" ]; then
               git clone https://github.com/kubernetes-sigs/kubespray.git
             fi
             
             cd kubespray
-            # 필요한 파이썬 라이브러리 설치
-            pip3 install -r requirements.txt
+            # 1. 가상 환경 생성
+            python3 -m venv venv
+            # 2. 가상 환경 활성화 후 pip 업그레이드 및 설치
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
           EOF
 
       # 5. 인벤토리 파일 전송 및 클러스터 구성 실행
@@ -76,6 +83,8 @@ jobs:
           # 2) Bastion에서 Kubespray 실행
           ssh ubuntu@${{ secrets.BASTION_HOST }} << 'EOF'
             cd ~/kubespray
+            # 가상 환경 활성화
+            source venv/bin/activate 
             
             # 앤서블 실행 (ssh 키 검사를 건너뛰기 위해 ANSIBLE_HOST_KEY_CHECKING 설정)
             export ANSIBLE_HOST_KEY_CHECKING=False
