@@ -7,6 +7,7 @@
 5.  **BASTION_USER:** Bastion VM에 접속했을 때 뜨는 user명에 맞게 BASTION_USER 값 변경
 6.  **네트워크 인터페이스 명칭 확인** : Bastion VM 터미널에 접속해서 "ip addr" 명령어를 입력해서 뜨는 네트워크 인터페이스 이름 (ens5, eth0 등)에 맞게 setup_nat.yml 변경
 7.  **inventory.ini:** : 변경된 IP에 맞게 인벤토리 IP 대역 변경
+8.  **라우팅 테이블** : 프라이빗 서브넷 라우팅 테이블 수정 (Bastion 추가)
 
 ### 테스트 환경
 -   AWS
