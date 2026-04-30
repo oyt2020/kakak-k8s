@@ -50,7 +50,7 @@ jobs:
         run: |
           # 마스터 노드(10.0.129.103)에 접속하여 구글 DNS로 핑을 날려 인터넷 확인
           ssh ubuntu@${{ secrets.BASTION_HOST }} << 'EOF'
-            ssh -o StrictHostKeyChecking=no 10.0.141.55 "ping -c 3 8.8.8.8"
+            ssh -o StrictHostKeyChecking=no 10.0.136.124 "ping -c 3 8.8.8.8"
           EOF
           if [ $? -ne 0 ]; then
             echo "NAT Configuration Failed: Private nodes cannot access the internet."
